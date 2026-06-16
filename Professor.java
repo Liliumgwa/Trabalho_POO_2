@@ -1,10 +1,23 @@
+import java.util.HashMap;
+import java.util.Map;
+
 public class Professor {
 
     private String nome;
-    private String competencia;
+    private Map<String, Integer> competencias;
     private boolean disponibilidade;
 
-    // Getters e Setters
+    public Professor() {
+        this.competencias = new HashMap<>();
+        this.disponibilidade = true;
+    }
+
+    public Professor(String nome, Map<String, Integer> competencias, boolean disponibilidade) {
+        this.nome = nome;
+        this.competencias = (competencias != null) ? competencias : new HashMap<>();
+        this.disponibilidade = disponibilidade;
+    }
+
     public String getNome() {
         return nome;
     }
@@ -13,12 +26,12 @@ public class Professor {
         this.nome = nome;
     }
 
-    public String getCompetencia() {
-        return competencia;
+    public Map<String, Integer> getCompetencias() {
+        return competencias;
     }
 
-    public void setCompetencia(String competencia) {
-        this.competencia = competencia;
+    public void setCompetencias(Map<String, Integer> competencias) {
+        this.competencias = competencias;
     }
 
     public boolean isDisponibilidade() {
