@@ -1,4 +1,4 @@
-package aaa;
+package ideiaviniciusmatchdisciplinas;
 
 import javax.swing.SwingUtilities;
 

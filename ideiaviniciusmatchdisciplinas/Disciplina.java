@@ -1,4 +1,4 @@
-package aaa;
+package ideiaviniciusmatchdisciplinas;
 
 public class Disciplina {
 
@@ -7,8 +7,8 @@ public class Disciplina {
     private int cargaHoraria;
 
     public Disciplina(String codigo,
-                      String nome,
-                      int cargaHoraria) {
+            String nome,
+            int cargaHoraria) {
 
         this.codigo = codigo;
         this.nome = nome;

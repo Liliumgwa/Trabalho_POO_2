@@ -1,4 +1,4 @@
-package aaa;
+package ideiaviniciusmatchdisciplinas;
 
 public class Alocacao {
 
@@ -7,8 +7,8 @@ public class Alocacao {
     private Horario horario;
 
     public Alocacao(Disciplina disciplina,
-                    Professor professor,
-                    Horario horario) {
+            Professor professor,
+            Horario horario) {
 
         this.disciplina = disciplina;
         this.professor = professor;

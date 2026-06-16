@@ -1,4 +1,4 @@
-package aaa;
+package ideiaviniciusmatchdisciplinas;
 
 public enum DiaSemana {
     SEGUNDA,

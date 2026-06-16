@@ -1,4 +1,4 @@
-package aaa;
+package ideiaviniciusmatchdisciplinas;
 
 import java.util.HashSet;
 import java.util.Set;
