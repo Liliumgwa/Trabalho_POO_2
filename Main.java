@@ -9,7 +9,7 @@ import model.Competencia;
 import model.Preferencia;
 
 public class Main {
-    
+
     // Método para limpar a tela do terminal usando o comando do sistema
     public static void limparTela() {
         try {
@@ -42,15 +42,15 @@ public class Main {
                 System.out.println("1. Realizar Login");
                 System.out.println("0. Sair");
             } else {
-                System.out.println("Status: LOGADO COMO [" + usuarioLogado.getLogin() + " - " + usuarioLogado.getNivelAcesso() + "]");
+                System.out.println("Status: LOGADO COMO [" + usuarioLogado.getLogin() + " - "
+                        + usuarioLogado.getNivelAcesso() + "]");
                 System.out.println("1. Professor");
-                System.out.println("2. Cadastrar Disciplina");
-                System.out.println("3. Atribuir Disciplina a Professor");
-                System.out.println("4. Realizar Logout");
+                System.out.println("2. Disciplina");
+                System.out.println("3. Realizar Logout");
                 System.out.println("0. Sair");
             }
             System.out.print("Escolha uma opção: ");
-            
+
             try {
                 opcao = Integer.parseInt(scanner.nextLine());
                 limparTela();
@@ -72,7 +72,7 @@ public class Main {
                     String login = scanner.nextLine();
                     System.out.print("Digite a senha: ");
                     String senha = scanner.nextLine();
-                    
+
                     usuarioLogado = Usuario.realizarLogin(login, senha);
                     limparTela();
                     if (usuarioLogado == null) {
@@ -108,7 +108,8 @@ public class Main {
                             if (opcaoSubProf == 1) {
                                 // Cadastrar Professor
                                 if (usuarioLogado.getNivelAcesso() != NivelAcesso.ADMINISTRADOR) {
-                                    System.out.println("[BLOQUEADO] Apenas usuários com nível ADMINISTRADOR podem cadastrar professores.");
+                                    System.out.println(
+                                            "[BLOQUEADO] Apenas usuários com nível ADMINISTRADOR podem cadastrar professores.");
                                 } else {
                                     System.out.print("Digite o nome do professor: ");
                                     String nome = scanner.nextLine();
@@ -127,7 +128,8 @@ public class Main {
                             } else if (opcaoSubProf == 2) {
                                 // Editar Professor
                                 if (usuarioLogado.getNivelAcesso() != NivelAcesso.ADMINISTRADOR) {
-                                    System.out.println("[BLOQUEADO] Apenas usuários com nível ADMINISTRADOR podem editar professores.");
+                                    System.out.println(
+                                            "[BLOQUEADO] Apenas usuários com nível ADMINISTRADOR podem editar professores.");
                                 } else if (professores.isEmpty()) {
                                     System.out.println("[ERRO] Nenhum professor cadastrado ainda.");
                                 } else {
@@ -153,7 +155,8 @@ public class Main {
 
                                     int opcaoSubEdit = -1;
                                     while (opcaoSubEdit != 0) {
-                                        System.out.println("\n--- EDITAR PROFESSOR: " + profParaEditar.getNome() + " ---");
+                                        System.out.println(
+                                                "\n--- EDITAR PROFESSOR: " + profParaEditar.getNome() + " ---");
                                         System.out.println("1. Alterar Nome");
                                         System.out.println("2. Alterar Disponibilidade");
                                         System.out.println("0. Voltar ao Submenu Professor");
@@ -206,14 +209,17 @@ public class Main {
                                         Professor p = professores.get(i);
                                         System.out.println("\n-------------------------------------------");
                                         System.out.println("Professor #" + (i + 1) + ": " + p.getNome());
-                                        System.out.println("Disponibilidade: " + (p.isDisponibilidade() ? "Disponível" : "Indisponível"));
+                                        System.out.println("Disponibilidade: "
+                                                + (p.isDisponibilidade() ? "Disponível" : "Indisponível"));
                                         System.out.println("--- Competências / Disciplinas ---");
                                         if (p.getCompetencias().isEmpty()) {
                                             System.out.println("  Nenhuma disciplina atribuída a este professor.");
                                         } else {
                                             for (Competencia comp : p.getCompetencias().values()) {
                                                 Disciplina d = comp.getDisciplina();
-                                                System.out.println("  * [" + d.getCodigo() + "] " + d.getNome() + " (" + d.getCargaHoraria() + "h) -> Preferência: " + comp.getPreferencia());
+                                                System.out.println("  * [" + d.getCodigo() + "] " + d.getNome() + " ("
+                                                        + d.getCargaHoraria() + "h) -> Preferência: "
+                                                        + comp.getPreferencia());
                                             }
                                         }
                                     }
@@ -225,121 +231,139 @@ public class Main {
                         break;
 
                     case 2:
-                        // Cadastrar Disciplina
-                        if (usuarioLogado.getNivelAcesso() != NivelAcesso.ADMINISTRADOR) {
-                            System.out.println("[BLOQUEADO] Apenas usuários com nível ADMINISTRADOR podem cadastrar disciplinas.");
-                            break;
-                        }
+                        // Submenu Disciplina
+                        int opcaoSubDisc = -1;
+                        while (opcaoSubDisc != 0) {
+                            System.out.println("\n--- SUBMENU DISCIPLINA ---");
+                            System.out.println("1. Cadastrar Disciplina");
+                            System.out.println("2. Atribuir Disciplina a Professor");
+                            System.out.println("0. Voltar ao Menu Principal");
+                            System.out.print("Escolha: ");
+                            try {
+                                opcaoSubDisc = Integer.parseInt(scanner.nextLine());
+                                limparTela();
+                            } catch (NumberFormatException e) {
+                                limparTela();
+                                System.out.println("[ERRO] Por favor, insira um número válido.");
+                                continue;
+                            }
 
-                        System.out.print("Digite o código da disciplina: ");
-                        String codigoDisc = scanner.nextLine();
-                        System.out.print("Digite o nome da disciplina: ");
-                        String nomeDisc = scanner.nextLine();
-                        System.out.print("Digite a carga horária (em horas): ");
-                        int cargaHoraria;
-                        try {
-                            cargaHoraria = Integer.parseInt(scanner.nextLine());
-                        } catch (NumberFormatException e) {
-                            limparTela();
-                            System.out.println("[ERRO] Carga horária inválida. Cadastro cancelado.");
-                            break;
-                        }
+                            if (opcaoSubDisc == 1) {
+                                // Cadastrar Disciplina
+                                if (usuarioLogado.getNivelAcesso() != NivelAcesso.ADMINISTRADOR) {
+                                    System.out.println(
+                                            "[BLOQUEADO] Apenas usuários com nível ADMINISTRADOR podem cadastrar disciplinas.");
+                                } else {
+                                    System.out.print("Digite o código da disciplina: ");
+                                    String codigoDisc = scanner.nextLine();
+                                    System.out.print("Digite o nome da disciplina: ");
+                                    String nomeDisc = scanner.nextLine();
+                                    System.out.print("Digite a carga horária (em horas): ");
+                                    int cargaHoraria;
+                                    try {
+                                        cargaHoraria = Integer.parseInt(scanner.nextLine());
+                                    } catch (NumberFormatException e) {
+                                        limparTela();
+                                        System.out.println("[ERRO] Carga horária inválida. Cadastro cancelado.");
+                                        continue;
+                                    }
 
-                        Disciplina novaDisciplina = new Disciplina(codigoDisc, nomeDisc, cargaHoraria);
-                        disciplinasCriadas.add(novaDisciplina);
-                        limparTela();
-                        System.out.println("[SUCESSO] Disciplina " + nomeDisc + " cadastrada com sucesso!");
+                                    Disciplina novaDisciplina = new Disciplina(codigoDisc, nomeDisc, cargaHoraria);
+                                    disciplinasCriadas.add(novaDisciplina);
+                                    limparTela();
+                                    System.out.println("[SUCESSO] Disciplina " + nomeDisc + " cadastrada com sucesso!");
+                                }
+                            } else if (opcaoSubDisc == 2) {
+                                // Atribuir Disciplina a Professor
+                                if (usuarioLogado.getNivelAcesso() != NivelAcesso.ADMINISTRADOR) {
+                                    System.out.println(
+                                            "[BLOQUEADO] Apenas usuários com nível ADMINISTRADOR podem atribuir disciplinas.");
+                                } else if (professores.isEmpty()) {
+                                    System.out.println("[ERRO] Nenhum professor cadastrado ainda.");
+                                } else if (disciplinasCriadas.isEmpty()) {
+                                    System.out.println("[ERRO] Nenhuma disciplina cadastrada no sistema ainda.");
+                                } else {
+                                    // Seleção do Professor
+                                    System.out.println("\n--- SELECIONE O PROFESSOR ---");
+                                    for (int i = 0; i < professores.size(); i++) {
+                                        System.out.println((i + 1) + ". " + professores.get(i).getNome());
+                                    }
+                                    System.out.print("Escolha o professor pelo número: ");
+                                    int profIndex;
+                                    try {
+                                        profIndex = Integer.parseInt(scanner.nextLine()) - 1;
+                                        limparTela();
+                                        if (profIndex < 0 || profIndex >= professores.size()) {
+                                            throw new IndexOutOfBoundsException();
+                                        }
+                                    } catch (Exception e) {
+                                        limparTela();
+                                        System.out.println("[ERRO] Escolha inválida. Atribuição cancelada.");
+                                        continue;
+                                    }
+                                    Professor professorEscolhido = professores.get(profIndex);
+
+                                    // Seleção da Disciplina
+                                    System.out.println("\n--- DISCIPLINAS DISPONÍVEIS ---");
+                                    for (int i = 0; i < disciplinasCriadas.size(); i++) {
+                                        Disciplina d = disciplinasCriadas.get(i);
+                                        System.out.println((i + 1) + ". Código: " + d.getCodigo() + " | Nome: "
+                                                + d.getNome() + " | Carga: " + d.getCargaHoraria() + "h");
+                                    }
+                                    System.out.print("Escolha a disciplina pelo número: ");
+                                    int discIndex;
+                                    try {
+                                        discIndex = Integer.parseInt(scanner.nextLine()) - 1;
+                                        limparTela();
+                                        if (discIndex < 0 || discIndex >= disciplinasCriadas.size()) {
+                                            throw new IndexOutOfBoundsException();
+                                        }
+                                    } catch (Exception e) {
+                                        limparTela();
+                                        System.out.println("[ERRO] Escolha inválida. Atribuição cancelada.");
+                                        continue;
+                                    }
+                                    Disciplina disciplinaEscolhida = disciplinasCriadas.get(discIndex);
+
+                                    // Seleção do Nível de Preferência
+                                    System.out.println("\n--- NÍVEIS DE PREFERÊNCIA ---");
+                                    Preferencia[] prefValores = Preferencia.values();
+                                    for (int i = 0; i < prefValores.length; i++) {
+                                        System.out.println((i + 1) + ". " + prefValores[i]);
+                                    }
+                                    System.out.print("Escolha a preferência pelo número: ");
+                                    int prefIndex;
+                                    try {
+                                        prefIndex = Integer.parseInt(scanner.nextLine()) - 1;
+                                        limparTela();
+                                        if (prefIndex < 0 || prefIndex >= prefValores.length) {
+                                            throw new IndexOutOfBoundsException();
+                                        }
+                                    } catch (Exception e) {
+                                        limparTela();
+                                        System.out.println("[ERRO] Escolha inválida. Atribuição cancelada.");
+                                        continue;
+                                    }
+                                    Preferencia preferenciaEscolhida = prefValores[prefIndex];
+
+                                    Competencia novaCompetencia = new Competencia(disciplinaEscolhida,
+                                            preferenciaEscolhida);
+                                    try {
+                                        professorEscolhido.adicionarCompetencia(novaCompetencia, usuarioLogado);
+                                        System.out
+                                                .println("[SUCESSO] Disciplina atribuída como competência ao professor "
+                                                        + professorEscolhido.getNome() + "!");
+                                    } catch (SecurityException e) {
+                                        System.out.println("[BLOQUEADO] " + e.getMessage());
+                                    }
+                                }
+                            } else if (opcaoSubDisc != 0) {
+                                System.out.println("[ERRO] Opção inválida.");
+                            }
+                        }
                         break;
 
                     case 3:
-                        // Atribuir Disciplina a Professor
-                        if (usuarioLogado.getNivelAcesso() != NivelAcesso.ADMINISTRADOR) {
-                            System.out.println("[BLOQUEADO] Apenas usuários com nível ADMINISTRADOR podem atribuir disciplinas.");
-                            break;
-                        }
-
-                        if (professores.isEmpty()) {
-                            System.out.println("[ERRO] Nenhum professor cadastrado ainda.");
-                            break;
-                        }
-
-                        if (disciplinasCriadas.isEmpty()) {
-                            System.out.println("[ERRO] Nenhuma disciplina cadastrada no sistema ainda.");
-                            break;
-                        }
-
-                        // Seleção do Professor
-                        System.out.println("\n--- SELECIONE O PROFESSOR ---");
-                        for (int i = 0; i < professores.size(); i++) {
-                            System.out.println((i + 1) + ". " + professores.get(i).getNome());
-                        }
-                        System.out.print("Escolha o professor pelo número: ");
-                        int profIndex;
-                        try {
-                            profIndex = Integer.parseInt(scanner.nextLine()) - 1;
-                            limparTela();
-                            if (profIndex < 0 || profIndex >= professores.size()) {
-                                throw new IndexOutOfBoundsException();
-                            }
-                        } catch (Exception e) {
-                            limparTela();
-                            System.out.println("[ERRO] Escolha inválida. Atribuição cancelada.");
-                            break;
-                        }
-                        Professor professorEscolhido = professores.get(profIndex);
-
-                        // Seleção da Disciplina
-                        System.out.println("\n--- DISCIPLINAS DISPONÍVEIS ---");
-                        for (int i = 0; i < disciplinasCriadas.size(); i++) {
-                            Disciplina d = disciplinasCriadas.get(i);
-                            System.out.println((i + 1) + ". Código: " + d.getCodigo() + " | Nome: " + d.getNome() + " | Carga: " + d.getCargaHoraria() + "h");
-                        }
-                        System.out.print("Escolha a disciplina pelo número: ");
-                        int discIndex;
-                        try {
-                            discIndex = Integer.parseInt(scanner.nextLine()) - 1;
-                            limparTela();
-                            if (discIndex < 0 || discIndex >= disciplinasCriadas.size()) {
-                                throw new IndexOutOfBoundsException();
-                            }
-                        } catch (Exception e) {
-                            limparTela();
-                            System.out.println("[ERRO] Escolha inválida. Atribuição cancelada.");
-                            break;
-                        }
-                        Disciplina disciplinaEscolhida = disciplinasCriadas.get(discIndex);
-
-                        // Seleção do Nível de Preferência
-                        System.out.println("\n--- NÍVEIS DE PREFERÊNCIA ---");
-                        Preferencia[] prefValores = Preferencia.values();
-                        for (int i = 0; i < prefValores.length; i++) {
-                            System.out.println((i + 1) + ". " + prefValores[i]);
-                        }
-                        System.out.print("Escolha a preferência pelo número: ");
-                        int prefIndex;
-                        try {
-                            prefIndex = Integer.parseInt(scanner.nextLine()) - 1;
-                            limparTela();
-                            if (prefIndex < 0 || prefIndex >= prefValores.length) {
-                                throw new IndexOutOfBoundsException();
-                            }
-                        } catch (Exception e) {
-                            limparTela();
-                            System.out.println("[ERRO] Escolha inválida. Atribuição cancelada.");
-                            break;
-                        }
-                        Preferencia preferenciaEscolhida = prefValores[prefIndex];
-
-                        Competencia novaCompetencia = new Competencia(disciplinaEscolhida, preferenciaEscolhida);
-                        try {
-                            professorEscolhido.adicionarCompetencia(novaCompetencia, usuarioLogado);
-                            System.out.println("[SUCESSO] Disciplina atribuída como competência ao professor " + professorEscolhido.getNome() + "!");
-                        } catch (SecurityException e) {
-                            System.out.println("[BLOQUEADO] " + e.getMessage());
-                        }
-                        break;
-
-                    case 4:
                         usuarioLogado = null;
                         System.out.println("[SUCESSO] Logout efetuado.");
                         break;
