@@ -24,6 +24,16 @@ public class GerenciamentoGrade{
     }
 
     public void listarProfessores(){
+        for(Professor p: professores ){
+            System.out.println("Listando todos os professores!");
+            System.out.println("Nome: " + p.getNome() + "Competencias: " + p.getCompetencias() + "Disponibilidade: " + p.isDisponibilidade());
+        }
+    }
+    public void listarDisciplinas(){
+    for(Disciplina d: disciplinas) {
+        System.out.println("--Listando todas as disciplinas--");
+        System.out.println("Codigo específico: " + d.getCodigo() + "Disciplina: " + d.getNome() + "Carga Horaria: " + d.getCargaHoraria());
+    }
 
     }
 
