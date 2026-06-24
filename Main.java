@@ -1,6 +1,8 @@
 import java.util.Scanner;
 import java.util.ArrayList;
 import java.util.List;
+
+import jdk.internal.org.commonmark.renderer.html.CoreHtmlNodeRenderer;
 import service.*;
 
 import model.*;
@@ -41,8 +43,9 @@ public class Main {
                 System.out.println("Status: LOGADO COMO [" + usuarioLogado.getLogin() + " - " + usuarioLogado.getNivelAcesso() + "]");
                 System.out.println("1. Professor");
                 System.out.println("2. Cadastrar Disciplina");
-                System.out.println("4. Visualizar Disciplinas");
-                System.out.println("5. Atribuir Disciplina a Professor");
+                System.out.println("3. Visualizar Disciplinas");//adicionado
+                System.out.println("4. Atribuir Disciplina a Professor");
+                System.out.println("5. Alocar Horario da Grade"); //adiconado
                 System.out.println("6. Realizar Logout");
                 System.out.println("0. Sair");
             }
@@ -91,7 +94,7 @@ public class Main {
                             System.out.println("1. Cadastrar Professor");
                             System.out.println("2. Editar Professor");
                             System.out.println("3. Visualizar professores cadastradados"); //mexer aqui!!!
-                            System.out.println("3. Visualizar Dados do Professor");
+                            System.out.println("4. Visualizar Dados do Professor");
                             System.out.println("0. Voltar ao Menu Principal");
                             System.out.print("Escolha: ");
                             try {
@@ -126,20 +129,20 @@ public class Main {
                                 // Editar Professor
                                 if (usuarioLogado.getNivelAcesso() != NivelAcesso.ADMINISTRADOR) {
                                     System.out.println("[BLOQUEADO] Apenas usuários com nível ADMINISTRADOR podem editar professores.");
-                                } else if (professores.isEmpty()) {
+                                } else if (Coordenacao.getProfessores().isEmpty()) {
                                     System.out.println("[ERRO] Nenhum professor cadastrado ainda.");
                                 } else {
                                     // Seleção do Professor
                                     System.out.println("\n--- SELECIONE O PROFESSOR PARA EDITAR ---");
-                                    for (int i = 0; i < professores.size(); i++) {
-                                        System.out.println((i + 1) + ". " + professores.get(i).getNome());
+                                    for (int i = 0; i < Coordenacao.getProfessores().size(); i++) {
+                                        System.out.println((i + 1) + ". " + Coordenacao.getProfessores().get(i).getNome());
                                     }
                                     System.out.print("Escolha o professor pelo número: ");
                                     int profEditIndex;
                                     try {
                                         profEditIndex = Integer.parseInt(scanner.nextLine()) - 1;
                                         limparTela();
-                                        if (profEditIndex < 0 || profEditIndex >= professores.size()) {
+                                        if (profEditIndex < 0 || profEditIndex >= Coordenacao.getProfessores().size()) {
                                             throw new IndexOutOfBoundsException();
                                         }
                                     } catch (Exception e) {
@@ -147,7 +150,7 @@ public class Main {
                                         System.out.println("[ERRO] Escolha inválida. Edição cancelada.");
                                         continue;
                                     }
-                                    Professor profParaEditar = professores.get(profEditIndex);
+                                    Professor profParaEditar = Coordenacao.getProfessores().get(profEditIndex);
 
                                     int opcaoSubEdit = -1;
                                     while (opcaoSubEdit != 0) {
@@ -198,16 +201,18 @@ public class Main {
 
                             }   else if(opcaoSubProf ==3){
                                 System.out.println("\n--Visualizando todos os professores--");
+                                Coordenacao.listarProfessores();
+                                System.out.println("--Professores Listados--");
 
                             }
                             else if (opcaoSubProf == 4) {
                                 // Visualizar Dados do Professor
-                                if (professores.isEmpty()) {
+                                if (Coordenacao.getProfessores().isEmpty()) {
                                     System.out.println("[ERRO] Nenhum professor cadastrado no sistema ainda.");
                                 } else {
                                     System.out.println("\n=== LISTA DE PROFESSORES CADASTRADOS ===");
-                                    for (int i = 0; i < professores.size(); i++) {
-                                        Professor p = professores.get(i);
+                                    for (int i = 0; i < Coordenacao.getProfessores().size(); i++) {
+                                        Professor p = Coordenacao.getProfessores().get(i);
                                         System.out.println("\n-------------------------------------------");
                                         System.out.println("Professor #" + (i + 1) + ": " + p.getNome());
                                         System.out.println("Disponibilidade: " + (p.isDisponibilidade() ? "Disponível" : "Indisponível"));
@@ -250,39 +255,48 @@ public class Main {
                         }
 
                         Disciplina novaDisciplina = new Disciplina(codigoDisc, nomeDisc, cargaHoraria);
-                        disciplinasCriadas.add(novaDisciplina);
+                        Coordenacao.cadastrarDisciplinas(novaDisciplina);
                         limparTela();
                         System.out.println("[SUCESSO] Disciplina " + nomeDisc + " cadastrada com sucesso!");
                         break;
 
                     case 3:
+                        if(Coordenacao.getDisciplinas().isEmpty()){
+                            System.out.println("Lista Vazia encerrando!");
+                            break;
+                        }
+                        //visualizar discplinas!
+                        System.out.println("--Imprimindo todas as disciplinas registradas--");
+                        Coordenacao.listarDisciplinas();
+                        break;
+                    case 4:
                         // Atribuir Disciplina a Professor
                         if (usuarioLogado.getNivelAcesso() != NivelAcesso.ADMINISTRADOR) {
                             System.out.println("[BLOQUEADO] Apenas usuários com nível ADMINISTRADOR podem atribuir disciplinas.");
                             break;
                         }
 
-                        if (professores.isEmpty()) {
+                        if (Coordenacao.getProfessores().isEmpty()) {
                             System.out.println("[ERRO] Nenhum professor cadastrado ainda.");
                             break;
                         }
 
-                        if (disciplinasCriadas.isEmpty()) {
+                        if (Coordenacao.getDisciplinas().isEmpty()) {
                             System.out.println("[ERRO] Nenhuma disciplina cadastrada no sistema ainda.");
                             break;
                         }
 
                         // Seleção do Professor
                         System.out.println("\n--- SELECIONE O PROFESSOR ---");
-                        for (int i = 0; i < professores.size(); i++) {
-                            System.out.println((i + 1) + ". " + professores.get(i).getNome());
+                        for (int i = 0; i < Coordenacao.getProfessores().size(); i++) {
+                            System.out.println((i + 1) + ". " + Coordenacao.getProfessores().get(i).getNome());
                         }
                         System.out.print("Escolha o professor pelo número: ");
                         int profIndex;
                         try {
                             profIndex = Integer.parseInt(scanner.nextLine()) - 1;
                             limparTela();
-                            if (profIndex < 0 || profIndex >= professores.size()) {
+                            if (profIndex < 0 || profIndex >= Coordenacao.getProfessores().size()) {
                                 throw new IndexOutOfBoundsException();
                             }
                         } catch (Exception e) {
@@ -290,12 +304,12 @@ public class Main {
                             System.out.println("[ERRO] Escolha inválida. Atribuição cancelada.");
                             break;
                         }
-                        Professor professorEscolhido = professores.get(profIndex);
+                        Professor professorEscolhido = Coordenacao.getProfessores().get(profIndex);
 
                         // Seleção da Disciplina
                         System.out.println("\n--- DISCIPLINAS DISPONÍVEIS ---");
-                        for (int i = 0; i < disciplinasCriadas.size(); i++) {
-                            Disciplina d = disciplinasCriadas.get(i);
+                        for (int i = 0; i < Coordenacao.getDisciplinas().size(); i++) {
+                            Disciplina d = Coordenacao.getDisciplinas().get(i);
                             System.out.println((i + 1) + ". Código: " + d.getCodigo() + " | Nome: " + d.getNome() + " | Carga: " + d.getCargaHoraria() + "h");
                         }
                         System.out.print("Escolha a disciplina pelo número: ");
@@ -303,7 +317,7 @@ public class Main {
                         try {
                             discIndex = Integer.parseInt(scanner.nextLine()) - 1;
                             limparTela();
-                            if (discIndex < 0 || discIndex >= disciplinasCriadas.size()) {
+                            if (discIndex < 0 || discIndex >= Coordenacao.getDisciplinas().size()) {
                                 throw new IndexOutOfBoundsException();
                             }
                         } catch (Exception e) {
@@ -311,7 +325,7 @@ public class Main {
                             System.out.println("[ERRO] Escolha inválida. Atribuição cancelada.");
                             break;
                         }
-                        Disciplina disciplinaEscolhida = disciplinasCriadas.get(discIndex);
+                        Disciplina disciplinaEscolhida = Coordenacao.getDisciplinas().get(discIndex);
 
                         // Seleção do Nível de Preferência
                         System.out.println("\n--- NÍVEIS DE PREFERÊNCIA ---");
@@ -342,8 +356,33 @@ public class Main {
                             System.out.println("[BLOQUEADO] " + e.getMessage());
                         }
                         break;
+                        //alocarHorario
+                    case 5:
+                        System.out.println("--Escolha o professor--");
+                        for (int i = 0; i < Coordenacao.getProfessores().size(); i++){
+                            System.out.println((i+1) + "." + Coordenacao.getProfessores().get(i).getNome());
+                        }
+                        int escolherProfessor;
 
-                    case 4:
+
+                        try {
+                            escolherProfessor = Integer.parseInt(scanner.nextLine()) -1;
+                            limparTela();
+                            if (escolherProfessor < 0 || escolherProfessor >= Coordenacao.getDisciplinas().size()) {
+                                throw new IndexOutOfBoundsException();
+                            }
+                        } catch (Exception e) {
+                            limparTela();
+                            System.out.println("[ERRO] Escolha inválida. Atribuição cancelada.");
+                            break;
+                        }
+                        Professor professorEsc = Coordenacao.getProfessores().get(escolherProfessor);
+
+
+
+
+                        break;
+                    case 6:
                         usuarioLogado = null;
                         System.out.println("[SUCESSO] Logout efetuado.");
                         break;

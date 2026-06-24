@@ -16,6 +16,15 @@ public class GerenciamentoGrade{
     //numeros de alocacoes para fins de "Boniteza"
     int numAlocacoes;
 
+
+    public List<Professor> getProfessores() {
+        return professores;
+    }
+
+    public List<Disciplina> getDisciplinas() {
+        return disciplinas;
+    }
+
     public void cadastrarProfessor(Professor p){
         professores.add(p);
     }
