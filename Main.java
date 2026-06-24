@@ -1,12 +1,9 @@
 import java.util.Scanner;
 import java.util.ArrayList;
 import java.util.List;
-import model.Professor;
-import model.Usuario;
-import model.NivelAcesso;
-import model.Disciplina;
-import model.Competencia;
-import model.Preferencia;
+import service.*;
+
+import model.*;
 
 public class Main {
     
@@ -26,10 +23,9 @@ public class Main {
     }
 
     public static void main(String[] args) {
+        GerenciamentoGrade Coordenacao = new GerenciamentoGrade();
         Scanner scanner = new Scanner(System.in);
         Usuario usuarioLogado = null;
-        List<Professor> professores = new ArrayList<>();
-        List<Disciplina> disciplinasCriadas = new ArrayList<>();
 
         limparTela();
         System.out.println("=== SISTEMA ACADÊMICO - GESTÃO DE PROFESSORES ===");
@@ -45,12 +41,13 @@ public class Main {
                 System.out.println("Status: LOGADO COMO [" + usuarioLogado.getLogin() + " - " + usuarioLogado.getNivelAcesso() + "]");
                 System.out.println("1. Professor");
                 System.out.println("2. Cadastrar Disciplina");
-                System.out.println("3. Atribuir Disciplina a Professor");
-                System.out.println("4. Realizar Logout");
+                System.out.println("4. Visualizar Disciplinas");
+                System.out.println("5. Atribuir Disciplina a Professor");
+                System.out.println("6. Realizar Logout");
                 System.out.println("0. Sair");
             }
             System.out.print("Escolha uma opção: ");
-            
+
             try {
                 opcao = Integer.parseInt(scanner.nextLine());
                 limparTela();
@@ -72,7 +69,7 @@ public class Main {
                     String login = scanner.nextLine();
                     System.out.print("Digite a senha: ");
                     String senha = scanner.nextLine();
-                    
+
                     usuarioLogado = Usuario.realizarLogin(login, senha);
                     limparTela();
                     if (usuarioLogado == null) {
@@ -93,6 +90,7 @@ public class Main {
                             System.out.println("\n--- SUBMENU PROFESSOR ---");
                             System.out.println("1. Cadastrar Professor");
                             System.out.println("2. Editar Professor");
+                            System.out.println("3. Visualizar professores cadastradados"); //mexer aqui!!!
                             System.out.println("3. Visualizar Dados do Professor");
                             System.out.println("0. Voltar ao Menu Principal");
                             System.out.print("Escolha: ");
@@ -120,7 +118,7 @@ public class Main {
                                     boolean disponibilidade = dispCriar.equals("1");
 
                                     Professor novoProf = new Professor(nome, null, disponibilidade);
-                                    professores.add(novoProf);
+                                    Coordenacao.cadastrarProfessor(novoProf); //MUDANÇA FEITA
                                     limparTela();
                                     System.out.println("[SUCESSO] Professor " + nome + " cadastrado com sucesso!");
                                 }
@@ -195,8 +193,14 @@ public class Main {
                                             System.out.println("[ERRO] Opção inválida.");
                                         }
                                     }
-                                }
-                            } else if (opcaoSubProf == 3) {
+                                }//opcao nova 3!!
+
+
+                            }   else if(opcaoSubProf ==3){
+                                System.out.println("\n--Visualizando todos os professores--");
+
+                            }
+                            else if (opcaoSubProf == 4) {
                                 // Visualizar Dados do Professor
                                 if (professores.isEmpty()) {
                                     System.out.println("[ERRO] Nenhum professor cadastrado no sistema ainda.");
