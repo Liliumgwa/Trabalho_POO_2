@@ -1,21 +1,24 @@
 package model;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class Professor {
     private String nome;
     private Map<String, Competencia> competencias;
-    private boolean disponibilidade;
+    private List<String> disponibilidades;
 
     public Professor() {
         this.competencias = new HashMap<>();
+        this.disponibilidades = new ArrayList<>();
     }
 
-    public Professor(String nome, Map<String, Competencia> competencias, boolean disponibilidade) {
+    public Professor(String nome, Map<String, Competencia> competencias, List<String> disponibilidades) {
         this.nome = nome;
         this.competencias = (competencias != null) ? competencias : new HashMap<>();
-        this.disponibilidade = disponibilidade;
+        this.disponibilidades = (disponibilidades != null) ? disponibilidades : new ArrayList<>();
     }
 
     public String getNome() {
@@ -23,7 +26,7 @@ public class Professor {
     }
 
     public void setNome(String nome, Usuario usuario) {
-        validarAcesso(usuario);
+        validarAcessoAdmin(usuario);
         this.nome = nome;
     }
 
@@ -32,29 +35,40 @@ public class Professor {
     }
 
     public void setCompetencias(Map<String, Competencia> competencias, Usuario usuario) {
-        validarAcesso(usuario);
+        validarAcessoAdmin(usuario);
         this.competencias = competencias;
     }
 
-    public boolean isDisponibilidade() {
-        return disponibilidade;
+    public List<String> getDisponibilidades() {
+        return disponibilidades;
     }
 
-    public void setDisponibilidade(boolean disponibilidade, Usuario usuario) {
-        validarAcesso(usuario);
-        this.disponibilidade = disponibilidade;
+    public void setDisponibilidades(List<String> disponibilidades, Usuario usuario) {
+        validarAcessoAdmin(usuario);
+        this.disponibilidades = disponibilidades;
+    }
+
+    public boolean temDisponibilidade(String periodo) {
+        return disponibilidades != null && disponibilidades.contains(periodo);
     }
 
     public void adicionarCompetencia(Competencia competencia, Usuario usuario) {
-        validarAcesso(usuario);
+        validarAcessoCoordenador(usuario);
         if (competencia != null && competencia.getDisciplina() != null) {
             this.competencias.put(competencia.getDisciplina().getCodigo(), competencia);
         }
     }
 
-    private void validarAcesso(Usuario usuario) {
+    private void validarAcessoAdmin(Usuario usuario) {
         if (usuario == null || usuario.getNivelAcesso() != NivelAcesso.ADMINISTRADOR) {
-            throw new SecurityException("Acesso negado: Apenas usuários com nível de acesso ADMINISTRADOR podem alterar os dados do professor.");
+            throw new SecurityException("Acesso negado: Apenas Administradores podem alterar dados do professor.");
+        }
+    }
+
+    private void validarAcessoCoordenador(Usuario usuario) {
+        if (usuario == null || (usuario.getNivelAcesso() != NivelAcesso.ADMINISTRADOR
+                && usuario.getNivelAcesso() != NivelAcesso.COORDENADOR)) {
+            throw new SecurityException("Acesso negado: Apenas Administradores e Coordenadores podem executar esta ação.");
         }
     }
 }

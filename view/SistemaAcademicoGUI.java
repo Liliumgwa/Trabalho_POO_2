@@ -1,4 +1,4 @@
-package model;
+package view;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -9,10 +9,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import model.*;
+import service.GerenciamentoGrade;
 
 public class SistemaAcademicoGUI extends JFrame {
-    private List<Professor> professores = new ArrayList<>();
-    private List<Disciplina> disciplinasCriadas = new ArrayList<>();
+    private GerenciamentoGrade coordenacao = new GerenciamentoGrade();
     private Map<String, String> gradeHorarios = new HashMap<>(); 
     private Usuario usuarioLogado = null;
 
@@ -34,6 +34,14 @@ public class SistemaAcademicoGUI extends JFrame {
     private final Color COLOR_TEXT_MUTED = new Color(180, 190, 210); // Cinza claro legível para labels secundárias
     private final Color COLOR_ACCENT = new Color(39, 174, 96);     // Verde sucesso
     private final Color COLOR_INPUT_BG = new Color(50, 63, 85);    // Fundo dos campos de texto e combos
+
+    // Botões controláveis por nível de acesso
+    private JButton btnCadastrarProf;
+    private JButton btnEditarDisp;
+    private JButton btnSalvarDisc;
+    private JButton btnVincular;
+    private JButton btnAlocar;
+    private JPanel  painelCadastroProf;
 
     public SistemaAcademicoGUI() {
         setTitle("Sistema Acadêmico - Gestão de Horários e Professores");
@@ -132,38 +140,66 @@ public class SistemaAcademicoGUI extends JFrame {
         scroll.setBorder(BorderFactory.createLineBorder(COLOR_INPUT_BG));
         painel.add(scroll, BorderLayout.CENTER);
 
-        JPanel painelCadastro = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
-        painelCadastro.setBackground(COLOR_SURFACE);
-        painelCadastro.setBorder(BorderFactory.createTitledBorder(
+        // Painel Lateral (Ações)
+        JPanel painelLateral = new JPanel(new GridLayout(6, 1, 0, 10));
+        painelLateral.setBackground(COLOR_BACKGROUND);
+        painelLateral.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 0));
+
+        btnEditarDisp = new JButton("Editar Disponibilidade");
+        configurarBotao(btnEditarDisp, COLOR_PRIMARY);
+        painelLateral.add(btnEditarDisp);
+
+        // Espaçadores para empurrar o botão para o topo
+        for (int i = 0; i < 5; i++) {
+            JLabel lblSpacer = new JLabel("");
+            painelLateral.add(lblSpacer);
+        }
+        painel.add(painelLateral, BorderLayout.EAST);
+
+        btnEditarDisp.addActionListener(e -> {
+            int selectedRow = tabela.getSelectedRow();
+            if (selectedRow == -1) {
+                JOptionPane.showMessageDialog(this, "Por favor, selecione um professor na tabela.", "Aviso", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            if (usuarioLogado == null || usuarioLogado.getNivelAcesso() != NivelAcesso.ADMINISTRADOR) {
+                JOptionPane.showMessageDialog(this, "Apenas administradores podem editar a disponibilidade de professores.", "Bloqueado", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            Professor p = coordenacao.getProfessores().get(selectedRow);
+            abrirDialogoEdicaoDisponibilidade(p);
+        });
+
+        painelCadastroProf = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
+        painelCadastroProf.setBackground(COLOR_SURFACE);
+        painelCadastroProf.setBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createLineBorder(COLOR_PRIMARY), "Cadastrar Novo Professor", 
                 TitledBorder.LEADING, TitledBorder.TOP, new Font("Segoe UI", Font.BOLD, 12), COLOR_TEXT));
 
-        JTextField txtNome = new JTextField(18);
+        JTextField txtNome = new JTextField(20);
         configurarCampoInput(txtNome);
 
-        JCheckBox chkDisp = new JCheckBox("Disponível para dar aulas", true);
-        chkDisp.setForeground(COLOR_TEXT);
-        chkDisp.setBackground(COLOR_SURFACE);
-        chkDisp.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btnCadastrarProf = new JButton("Salvar Professor");
+        configurarBotao(btnCadastrarProf, COLOR_ACCENT);
 
-        JButton btnCadastrar = new JButton("Salvar Professor");
-        configurarBotao(btnCadastrar, COLOR_ACCENT);
+        painelCadastroProf.add(criarLabelForte("Nome do Professor:"));
+        painelCadastroProf.add(txtNome);
+        painelCadastroProf.add(btnCadastrarProf);
 
-        painelCadastro.add(criarLabelForte("Nome do Professor:"));
-        painelCadastro.add(txtNome);
-        painelCadastro.add(chkDisp);
-        painelCadastro.add(btnCadastrar);
+        painel.add(painelCadastroProf, BorderLayout.SOUTH);
 
-        painel.add(painelCadastro, BorderLayout.SOUTH);
-
-        btnCadastrar.addActionListener(e -> {
+        btnCadastrarProf.addActionListener(e -> {
             if (txtNome.getText().trim().isEmpty()) return;
             try {
                 if (usuarioLogado == null || usuarioLogado.getNivelAcesso() != NivelAcesso.ADMINISTRADOR) {
                     throw new SecurityException("Apenas Administradores podem cadastrar professores.");
                 }
-                Professor p = new Professor(txtNome.getText().trim(), null, chkDisp.isSelected());
-                professores.add(p);
+                // Cria o professor com todas as disponibilidades por padrão
+                List<String> todasDisp = obterTodosPeriodosSlots();
+                Professor p = new Professor(txtNome.getText().trim(), null, todasDisp);
+                coordenacao.cadastrarProfessor(p);
                 atualizarTabelaProfessores();
                 txtNome.setText("");
                 JOptionPane.showMessageDialog(this, "Professor adicionado!");
@@ -174,6 +210,132 @@ public class SistemaAcademicoGUI extends JFrame {
 
         atualizarTabelaProfessores();
         return painel;
+    }
+
+    private List<String> obterTodosPeriodosSlots() {
+        List<String> slots = new ArrayList<>();
+        String[] periodos = {"07:30-09:10", "09:30-11:10", "19:00-20:40", "20:50-22:30"};
+        for (DiaSemana d : DiaSemana.values()) {
+            for (String per : periodos) {
+                slots.add(d.name() + "|" + per);
+            }
+        }
+        return slots;
+    }
+
+    private String obterResumoDisponibilidade(Professor p) {
+        List<String> disp = p.getDisponibilidades();
+        if (disp == null || disp.isEmpty()) {
+            return "Nenhuma disponibilidade (Indisponível)";
+        }
+        int totalSlots = DiaSemana.values().length * 4; // 7 * 4 = 28
+        if (disp.size() == totalSlots) {
+            return "Disponível em todos os horários (28 slots)";
+        }
+        return disp.size() + " de " + totalSlots + " slots livres";
+    }
+
+    private void abrirDialogoEdicaoDisponibilidade(Professor professor) {
+        JDialog dialog = new JDialog(this, "Editar Disponibilidade - " + professor.getNome(), true);
+        dialog.setSize(750, 480);
+        dialog.setLocationRelativeTo(this);
+        dialog.getContentPane().setBackground(COLOR_BACKGROUND);
+        dialog.setLayout(new BorderLayout(10, 10));
+
+        // Título / Info
+        JPanel painelTitulo = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        painelTitulo.setBackground(COLOR_SURFACE);
+        JLabel lblTitulo = new JLabel("Selecione os períodos disponíveis para: " + professor.getNome());
+        lblTitulo.setForeground(COLOR_TEXT);
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        painelTitulo.add(lblTitulo);
+        dialog.add(painelTitulo, BorderLayout.NORTH);
+
+        // Grade de Checkboxes (7 dias x 4 períodos)
+        String[] periodos = {"07:30-09:10", "09:30-11:10", "19:00-20:40", "20:50-22:30"};
+        DiaSemana[] dias = DiaSemana.values();
+
+        // 1 + 7 linhas (cabeçalho + dias), 1 + 4 colunas (nome do dia + períodos)
+        JPanel painelGrid = new JPanel(new GridLayout(dias.length + 1, periodos.length + 1, 5, 5));
+        painelGrid.setBackground(COLOR_BACKGROUND);
+        painelGrid.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+        // Cabeçalhos das colunas
+        JLabel lblCanto = new JLabel("Dia / Horário", SwingConstants.CENTER);
+        lblCanto.setForeground(COLOR_TEXT_MUTED);
+        lblCanto.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        painelGrid.add(lblCanto);
+
+        for (String per : periodos) {
+            JLabel lblPer = new JLabel(per, SwingConstants.CENTER);
+            lblPer.setForeground(COLOR_TEXT);
+            lblPer.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            painelGrid.add(lblPer);
+        }
+
+        // Checkboxes mapeados por chave: "DIA|PERIODO"
+        Map<String, JCheckBox> checkboxes = new HashMap<>();
+
+        for (DiaSemana dia : dias) {
+            JLabel lblDia = new JLabel("  " + dia.name());
+            lblDia.setForeground(COLOR_TEXT);
+            lblDia.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            painelGrid.add(lblDia);
+
+            for (String per : periodos) {
+                String chave = dia.name() + "|" + per;
+                JCheckBox cb = new JCheckBox();
+                cb.setBackground(COLOR_SURFACE);
+                cb.setHorizontalAlignment(SwingConstants.CENTER);
+                
+                // Se o professor já tem essa disponibilidade, marcar
+                if (professor.temDisponibilidade(chave)) {
+                    cb.setSelected(true);
+                }
+                
+                checkboxes.put(chave, cb);
+                painelGrid.add(cb);
+            }
+        }
+
+        dialog.add(new JScrollPane(painelGrid), BorderLayout.CENTER);
+
+        // Painel inferior de ações (Salvar / Cancelar)
+        JPanel painelBotoes = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
+        painelBotoes.setBackground(COLOR_SURFACE);
+
+        JButton btnSalvar = new JButton("Salvar");
+        configurarBotao(btnSalvar, COLOR_ACCENT);
+
+        JButton btnCancelar = new JButton("Cancelar");
+        configurarBotao(btnCancelar, COLOR_SURFACE);
+        btnCancelar.setBorder(BorderFactory.createLineBorder(COLOR_PRIMARY));
+
+        painelBotoes.add(btnCancelar);
+        painelBotoes.add(btnSalvar);
+        dialog.add(painelBotoes, BorderLayout.SOUTH);
+
+        btnCancelar.addActionListener(ev -> dialog.dispose());
+
+        btnSalvar.addActionListener(ev -> {
+            List<String> novasDisponibilidades = new ArrayList<>();
+            checkboxes.forEach((chave, cb) -> {
+                if (cb.isSelected()) {
+                    novasDisponibilidades.add(chave);
+                }
+            });
+            
+            try {
+                professor.setDisponibilidades(novasDisponibilidades, usuarioLogado);
+                atualizarTabelaProfessores();
+                dialog.dispose();
+                JOptionPane.showMessageDialog(this, "Disponibilidades de " + professor.getNome() + " atualizadas com sucesso!");
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog, ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        dialog.setVisible(true);
     }
 
     private JPanel criarPainelDisciplinas() {
@@ -203,7 +365,7 @@ public class SistemaAcademicoGUI extends JFrame {
         JTextField txtCod = new JTextField(); configurarCampoInput(txtCod);
         JTextField txtNomeD = new JTextField(); configurarCampoInput(txtNomeD);
         JTextField txtCarga = new JTextField(); configurarCampoInput(txtCarga);
-        JButton btnSalvarDisc = new JButton("Adicionar Disciplina");
+        btnSalvarDisc = new JButton("Adicionar Disciplina");
         configurarBotao(btnSalvarDisc, COLOR_PRIMARY);
 
         formDisc.add(criarLabelForte("Código:")); formDisc.add(txtCod);
@@ -223,7 +385,7 @@ public class SistemaAcademicoGUI extends JFrame {
         JComboBox<String> cbDisciplinas = new JComboBox<>(); configurarComponenteCombo(cbDisciplinas);
         JComboBox<Preferencia> cbPreferencia = new JComboBox<>(Preferencia.values()); configurarComponenteCombo(cbPreferencia);
         
-        JButton btnVincular = new JButton("Gravar Nova Afinidade");
+        btnVincular = new JButton("Gravar Nova Afinidade");
         configurarBotao(btnVincular, COLOR_ACCENT);
 
         painelDireito.add(criarLabelForte("1. Escolha o Professor:"));
@@ -237,20 +399,22 @@ public class SistemaAcademicoGUI extends JFrame {
         tabbedPane.addChangeListener(e -> {
             if (tabbedPane.getSelectedIndex() == 1) {
                 cbProfessores.removeAllItems();
-                for (Professor p : professores) cbProfessores.addItem(p.getNome());
+                for (Professor p : coordenacao.getProfessores()) cbProfessores.addItem(p.getNome());
                 cbDisciplinas.removeAllItems();
-                for (Disciplina d : disciplinasCriadas) cbDisciplinas.addItem(d.getCodigo() + " - " + d.getNome());
+                for (Disciplina d : coordenacao.getDisciplinas()) cbDisciplinas.addItem(d.getCodigo() + " - " + d.getNome());
             }
         });
 
         btnSalvarDisc.addActionListener(e -> {
             if (txtCod.getText().isEmpty() || txtNomeD.getText().isEmpty()) return;
             try {
-                if (usuarioLogado == null || usuarioLogado.getNivelAcesso() != NivelAcesso.ADMINISTRADOR) {
-                    throw new SecurityException("Apenas Administradores podem cadastrar disciplinas.");
+                if (usuarioLogado == null
+                        || (usuarioLogado.getNivelAcesso() != NivelAcesso.ADMINISTRADOR
+                        && usuarioLogado.getNivelAcesso() != NivelAcesso.COORDENADOR)) {
+                    throw new SecurityException("Apenas Administradores e Coordenadores podem cadastrar disciplinas.");
                 }
                 int ch = Integer.parseInt(txtCarga.getText());
-                disciplinasCriadas.add(new Disciplina(txtCod.getText(), txtNomeD.getText(), ch));
+                coordenacao.cadastrarDisciplinas(new Disciplina(txtCod.getText(), txtNomeD.getText(), ch));
                 atualizarTabelaDisciplinas();
                 txtCod.setText(""); txtNomeD.setText(""); txtCarga.setText("");
             } catch (Exception ex) {
@@ -259,10 +423,10 @@ public class SistemaAcademicoGUI extends JFrame {
         });
 
         btnVincular.addActionListener(e -> {
-            if (professores.isEmpty() || disciplinasCriadas.isEmpty()) return;
+            if (coordenacao.getProfessores().isEmpty() || coordenacao.getDisciplinas().isEmpty()) return;
             try {
-                Professor p = professores.get(cbProfessores.getSelectedIndex());
-                Disciplina d = disciplinasCriadas.get(cbDisciplinas.getSelectedIndex());
+                Professor p = coordenacao.getProfessores().get(cbProfessores.getSelectedIndex());
+                Disciplina d = coordenacao.getDisciplinas().get(cbDisciplinas.getSelectedIndex());
                 Preferencia pref = (Preferencia) cbPreferencia.getSelectedItem();
 
                 Competencia comp = new Competencia(d, pref);
@@ -299,7 +463,7 @@ public class SistemaAcademicoGUI extends JFrame {
         JComboBox<String> cbProf = new JComboBox<>(); configurarComponenteCombo(cbProf);
         JComboBox<String> cbDisc = new JComboBox<>(); configurarComponenteCombo(cbDisc);
 
-        JButton btnAlocar = new JButton("Alocar Horário");
+        btnAlocar = new JButton("Alocar Horário");
         configurarBotao(btnAlocar, COLOR_PRIMARY);
 
         topoAgendamento.add(criarLabelForte("Dia:")); topoAgendamento.add(cbDias);
@@ -322,44 +486,47 @@ public class SistemaAcademicoGUI extends JFrame {
         tabbedPane.addChangeListener(e -> {
             if (tabbedPane.getSelectedIndex() == 2) {
                 cbProf.removeAllItems();
-                for (Professor p : professores) cbProf.addItem(p.getNome());
+                for (Professor p : coordenacao.getProfessores()) cbProf.addItem(p.getNome());
                 cbDisc.removeAllItems();
-                for (Disciplina d : disciplinasCriadas) cbDisc.addItem(d.getCodigo());
+                for (Disciplina d : coordenacao.getDisciplinas()) cbDisc.addItem(d.getCodigo());
             }
         });
 
         btnAlocar.addActionListener(e -> {
-            if (professores.isEmpty() || disciplinasCriadas.isEmpty()) return;
+            if (coordenacao.getProfessores().isEmpty() || coordenacao.getDisciplinas().isEmpty()) return;
             
             String dia = (String) cbDias.getSelectedItem();
             String perStr = (String) cbPeriodos.getSelectedItem();
-            Professor p = professores.get(cbProf.getSelectedIndex());
-            Disciplina d = disciplinasCriadas.get(cbDisc.getSelectedIndex());
-
-            if (!p.isDisponibilidade()) {
-                JOptionPane.showMessageDialog(this, "Esse professor está indisponível para este período!", "Aviso", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
+            Professor p = coordenacao.getProfessores().get(cbProf.getSelectedIndex());
+            Disciplina d = coordenacao.getDisciplinas().get(cbDisc.getSelectedIndex());
 
             String chaveHorarioGeral = dia + "|" + perStr;
-            String chaveProfessorOcupado = dia + "|" + perStr + "|" + p.getNome();
 
-            if (gradeHorarios.containsKey(chaveProfessorOcupado)) {
-                JOptionPane.showMessageDialog(this, "[CONFLITO DETECTADO] O Prof. " + p.getNome() + " já está alocado neste dia e período!", "Erro de Choque", JOptionPane.ERROR_MESSAGE);
+            if (usuarioLogado == null
+                    || (usuarioLogado.getNivelAcesso() != NivelAcesso.ADMINISTRADOR
+                    && usuarioLogado.getNivelAcesso() != NivelAcesso.COORDENADOR)) {
+                JOptionPane.showMessageDialog(this, "Apenas Administradores e Coordenadores podem alocar horários.", "Acesso Negado", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
-            String afinidade = "Nenhuma informada";
-            if (p.getCompetencias().containsKey(d.getCodigo())) {
-                afinidade = p.getCompetencias().get(d.getCodigo()).getPreferencia().name();
+            try {
+                coordenacao.alocarHorario(p, d, chaveHorarioGeral);
+
+                String afinidade = "Nenhuma informada";
+                if (p.getCompetencias().containsKey(d.getCodigo())) {
+                    afinidade = p.getCompetencias().get(d.getCodigo()).getPreferencia().name();
+                }
+
+                String informacaoAula = String.format("Matéria: %s | Professor: %s (Afinidade: %s)", d.getCodigo(), p.getNome(), afinidade);
+                gradeHorarios.put(chaveHorarioGeral, informacaoAula);
+                String chaveProfessorOcupado = dia + "|" + perStr + "|" + p.getNome();
+                gradeHorarios.put(chaveProfessorOcupado, informacaoAula);
+
+                atualQuadroGradeTextual();
+                JOptionPane.showMessageDialog(this, "Aula agendada com sucesso!");
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage(), "Erro de Agendamento", JOptionPane.ERROR_MESSAGE);
             }
-
-            String informacaoAula = String.format("Matéria: %s | Professor: %s (Afinidade: %s)", d.getCodigo(), p.getNome(), afinidade);
-            gradeHorarios.put(chaveHorarioGeral, informacaoAula);
-            gradeHorarios.put(chaveProfessorOcupado, informacaoAula);
-
-            atualQuadroGradeTextual();
-            JOptionPane.showMessageDialog(this, "Aula agendada com sucesso!");
         });
 
         atualQuadroGradeTextual();
@@ -450,14 +617,14 @@ public class SistemaAcademicoGUI extends JFrame {
 
     private void atualizarTabelaProfessores() {
         tableModelProfessores.setRowCount(0);
-        for (Professor p : professores) {
+        for (Professor p : coordenacao.getProfessores()) {
             StringBuilder comps = new StringBuilder();
             p.getCompetencias().forEach((k, v) -> {
                 comps.append(v.getDisciplina().getNome()).append(" (").append(v.getPreferencia()).append("); ");
             });
             tableModelProfessores.addRow(new Object[]{
                 p.getNome(), 
-                p.isDisponibilidade() ? "Disponível" : "Indisponível",
+                obterResumoDisponibilidade(p),
                 comps.toString().isEmpty() ? "Nenhuma afinidade atribuída" : comps.toString()
             });
         }
@@ -465,18 +632,49 @@ public class SistemaAcademicoGUI extends JFrame {
 
     private void atualizarTabelaDisciplinas() {
         tableModelDisciplinas.setRowCount(0);
-        for (Disciplina d : disciplinasCriadas) {
+        for (Disciplina d : coordenacao.getDisciplinas()) {
             tableModelDisciplinas.addRow(new Object[]{d.getCodigo(), d.getNome(), d.getCargaHoraria() + "h"});
         }
     }
 
-    private void atualizarPermissoesInterface() {}
+    private void atualizarPermissoesInterface() {
+        boolean logado       = usuarioLogado != null;
+        boolean isAdmin      = logado && usuarioLogado.getNivelAcesso() == NivelAcesso.ADMINISTRADOR;
+        boolean isCoord      = logado && usuarioLogado.getNivelAcesso() == NivelAcesso.COORDENADOR;
+        boolean isProfessor  = logado && usuarioLogado.getNivelAcesso() == NivelAcesso.PROFESSOR;
+
+        // --- Abas: visibilidade por papel ---
+        // PROFESSOR: só vê Grade de Horários
+        // COORDENADOR e ADMIN: vêem tudo
+        tabbedPane.setEnabledAt(0, isAdmin || isCoord); // aba Professores
+        tabbedPane.setEnabledAt(1, isAdmin || isCoord); // aba Disciplinas
+        tabbedPane.setEnabledAt(2, logado);             // aba Grade (todos logados)
+
+        // Se aba atual ficou bloqueada, redirecionar para Grade
+        if (!tabbedPane.isEnabledAt(tabbedPane.getSelectedIndex())) {
+            tabbedPane.setSelectedIndex(2);
+        }
+
+        // --- Aba Professores (somente ADMIN) ---
+        if (btnCadastrarProf != null) btnCadastrarProf.setEnabled(isAdmin);
+        if (btnEditarDisp    != null) btnEditarDisp.setEnabled(isAdmin);
+        if (painelCadastroProf != null) painelCadastroProf.setEnabled(isAdmin);
+
+        // --- Aba Disciplinas (ADMIN + COORDENADOR) ---
+        if (btnSalvarDisc != null) btnSalvarDisc.setEnabled(isAdmin || isCoord);
+        if (btnVincular   != null) btnVincular.setEnabled(isAdmin || isCoord);
+
+        // --- Aba Grade (ADMIN + COORDENADOR podem alocar; PROFESSOR só lê) ---
+        if (btnAlocar != null) btnAlocar.setEnabled(isAdmin || isCoord);
+    }
 
     private void inicializarDadosExemplo() {
-        disciplinasCriadas.add(new Disciplina("ALGO1", "Algoritmos I", 80));
-        disciplinasCriadas.add(new Disciplina("POO", "Programação Orientada a Objetos", 60));
-        disciplinasCriadas.add(new Disciplina("BD1", "Banco de Dados I", 60));
-        professores.add(new Professor("Dr. Alan Turing", null, true));
-        professores.add(new Professor("Dra. Ada Lovelace", null, true));
+        coordenacao.cadastrarDisciplinas(new Disciplina("ALGO1", "Algoritmos I", 80));
+        coordenacao.cadastrarDisciplinas(new Disciplina("POO", "Programação Orientada a Objetos", 60));
+        coordenacao.cadastrarDisciplinas(new Disciplina("BD1", "Banco de Dados I", 60));
+        
+        List<String> todasDisp = obterTodosPeriodosSlots();
+        coordenacao.cadastrarProfessor(new Professor("Dr. Alan Turing", null, new ArrayList<>(todasDisp)));
+        coordenacao.cadastrarProfessor(new Professor("Dra. Ada Lovelace", null, new ArrayList<>(todasDisp)));
     }
 }

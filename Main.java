@@ -1,5 +1,4 @@
-package model;
-
+import view.SistemaAcademicoGUI;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
